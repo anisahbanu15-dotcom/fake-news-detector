@@ -1,0 +1,5 @@
+{
+  "name": "TruthLens – Fake News Detector",
+  "description": "A full-stack application that uses AI to detect fake news and track analysis history.",
+  "requestFramePermissions": []
+}

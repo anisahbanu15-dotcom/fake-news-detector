@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Unique identifier for the user" },
+        "email": { "type": "string", "description": "User's email address" },
+        "displayName": { "type": "string", "description": "User's display name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user account was created" }
+      },
+      "required": ["uid", "email"]
+    },
+    "NewsAnalysis": {
+      "title": "News Analysis",
+      "description": "Analysis result for a piece of news",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the analysis" },
+        "userId": { "type": "string", "description": "UID of the user who performed the analysis" },
+        "newsText": { "type": "string", "description": "The text of the news analyzed" },
+        "prediction": { "type": "string", "enum": ["Real", "Fake"], "description": "The AI's prediction" },
+        "confidence": { "type": "number", "description": "Confidence score (0-1)" },
+        "explanation": { "type": "string", "description": "AI's reasoning for the prediction" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the analysis was performed" }
+      },
+      "required": ["userId", "newsText", "prediction", "confidence", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/analyses/{analysisId}": {
+      "schema": "NewsAnalysis",
+      "description": "News analysis history documents"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (UID)
+    // Fields:
+    //   - uid: string (required) - User's unique ID
+    //   - email: string (required) - User's email
+    //   - displayName: string (optional) - User's name
+    //   - createdAt: string (required) - ISO timestamp
+    //
+    // Collection: analyses
+    // Document ID: analysisId (Auto-generated)
+    // Fields:
+    //   - userId: string (required) - UID of the owner
+    //   - newsText: string (required) - The analyzed text
+    //   - prediction: string (required) - "Real" or "Fake"
+    //   - confidence: number (required) - 0 to 1
+    //   - explanation: string (required) - AI's reasoning
+    //   - timestamp: string (required) - ISO timestamp
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.email is string && data.email.size() > 0 &&
+             data.createdAt is string;
+    }
+
+    function isValidAnalysis(data) {
+      return data.keys().hasAll(['userId', 'newsText', 'prediction', 'confidence', 'explanation', 'timestamp']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.newsText is string && data.newsText.size() >= 50 && data.newsText.size() < 50000 &&
+             data.prediction in ['Real', 'Fake'] &&
+             data.confidence is number && data.confidence >= 0 && data.confidence <= 1 &&
+             data.explanation is string && data.explanation.size() > 0 &&
+             data.timestamp is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                      request.resource.data.uid == resource.data.uid &&
+                      request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false; // Users cannot delete their profiles
+    }
+
+    match /analyses/{analysisId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && isValidAnalysis(request.resource.data);
+      allow update: if false; // Analyses are immutable
+      allow delete: if isDocOwner();
+    }
+  }
+}
